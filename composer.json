@@ -27,12 +27,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Yiisoft\\files\\": "src"
+            "Yiisoft\\Files\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Yiisoft\\files\\Tests\\": "tests"
+            "Yiisoft\\Files\\Tests\\": "tests"
         }
     },
     "extra": {
