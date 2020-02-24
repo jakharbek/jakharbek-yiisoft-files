@@ -1,36 +1,38 @@
 {
-    "name": "yiisoft/_____",
+    "name": "yiisoft/files",
     "type": "library",
-    "description": "_____",
+    "description": "files",
     "keywords": [
-        "_____"
+        "files"
     ],
     "homepage": "https://www.yiiframework.com/",
     "license": "BSD-3-Clause",
     "support": {
-        "issues": "https://github.com/yiisoft/_____/issues?state=open",
+        "issues": "https://github.com/yiisoft/files/issues?state=open",
         "forum": "https://www.yiiframework.com/forum/",
         "wiki": "https://www.yiiframework.com/wiki/",
         "irc": "irc://irc.freenode.net/yii",
-        "source": "https://github.com/yiisoft/_____"
+        "source": "https://github.com/yiisoft/files"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": "^7.4"
+        "php": "^7.4",
+        "league/flysystem": "1.0.63"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.0",
-        "phan/phan": "^2.4"
+        "phan/phan": "^2.4",
+        "hiqdev/composer-config-plugin": "^1.0@dev"
     },
     "autoload": {
         "psr-4": {
-            "Yiisoft\\_____\\": "src"
+            "Yiisoft\\files\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Yiisoft\\_____\\Tests\\": "tests"
+            "Yiisoft\\files\\Tests\\": "tests"
         }
     },
     "extra": {
