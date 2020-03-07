@@ -43,7 +43,7 @@ src/                                                                            
         DTO/                                                                        DTOs
         Exception/                                                                  Exceptions
         Helper/                                                                     Helpers
-        Repository/                                                                 Repositories
+        Traits/                                                                     Traits
 tests/                                                                              tests
 ```
 
