@@ -253,7 +253,7 @@ $stream = fopen(__DIR__ . "/src/assets/logo.png","r+");
 $file = File::stream($stream)->to()->put();
 ```
 
-###Form file
+### Form file
 This way you can easily access the file sent to you by the form, for example
 
 Let's send us a user profile
