@@ -237,7 +237,7 @@ $file = File::from("logo.png",$storage1)->to($storage2)->put("logo.png");
 ```
 
 
-###Stream File
+### Stream File
 As you can understand by name in this way, you can access the file stream, for example
 ```php
 use Yiisoft\Files\Adapter\AdapterFactory;
@@ -326,9 +326,9 @@ $file->getFilename();//     logo-name
 $file->getDirname();///     data/static/assets
 ```
 
-#Storage
+# Storage
 
-###template
+### template
 
 A template for storage is a template of the path where files will be stored
 
