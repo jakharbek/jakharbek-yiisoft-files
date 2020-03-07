@@ -236,7 +236,7 @@ $file = File::from("logo.png",$storage1)->to($storage2)->put("logo.png");
 //by the example above we transferred files between servers
 ```
 
-####Stream File
+###Stream File
 
 As you can understand by name in this way, you can access the file stream, for example
 ```php
@@ -253,7 +253,7 @@ $stream = fopen(__DIR__ . "/src/assets/logo.png","r+");
 $file = File::stream($stream)->to()->put();
 ```
 
-####Form file
+###Form file
 This way you can easily access the file sent to you by the form, for example
 
 Let's send us a user profile
@@ -272,7 +272,7 @@ use Yiisoft\Files\File;
 $file = File::form("avatar")->to()->put();
 ```
 
-###
+### API
 The above example was shown to you using different ways of accessing files, you can read the list of all available file operations below:
 ```php
 use Yiisoft\Files\Adapter\AdapterFactory;
