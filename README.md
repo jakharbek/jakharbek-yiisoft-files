@@ -236,8 +236,8 @@ $file = File::from("logo.png",$storage1)->to($storage2)->put("logo.png");
 //by the example above we transferred files between servers
 ```
 
-###Stream File
 
+###Stream File
 As you can understand by name in this way, you can access the file stream, for example
 ```php
 use Yiisoft\Files\Adapter\AdapterFactory;
