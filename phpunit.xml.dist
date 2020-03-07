@@ -3,7 +3,7 @@
 <phpunit backupGlobals="false"
          colors="true"
          verbose="true"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          failOnRisky="true"
          failOnWarning="true">
     <php>
@@ -11,7 +11,7 @@
     </php>
 
     <testsuites>
-        <testsuite name="Yii _____ tests">
+        <testsuite name="Yii Files tests">
             <directory>./tests</directory>
         </testsuite>
     </testsuites>

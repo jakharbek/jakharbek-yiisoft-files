@@ -8,12 +8,10 @@
 
 namespace Yiisoft\Files;
 
-use League\Flysystem\Adapter\Local;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Filesystem;
 use Yiisoft\Files\Adapter\AdapterFactory;
 use Yiisoft\Files\Adapter\LocalAdapter;
-use Yiisoft\Files\Dto\LocalAdapterDTO;
 use Yiisoft\Files\Exception\FileException;
 use Yiisoft\Files\Helper\ConfigHelper;
 use Yiisoft\Files\Traits\StorageTrait;
@@ -60,6 +58,7 @@ class Storage
      * @var File
      */
     private $_file;
+
 
     /**
      * Storage constructor.
@@ -139,25 +138,6 @@ class Storage
     }
 
     /**
-     * @return Storage
-     * @throws Exception\AdapterException
-     */
-    public static function getLocalStorage($file = null)
-    {
-        $dto = new LocalAdapterDTO();
-        $dto->root = ConfigHelper::getParam('file.storage')['local']['root'];
-        $dto->permissions = ConfigHelper::getParam('file.storage')['local']['permissions'];
-        $dto->linkHandling = ConfigHelper::getParam('file.storage')['local']['linkHandling'] ?? Local::DISALLOW_LINKS;
-        $dto->writeFlags = ConfigHelper::getParam('file.storage')['local']['writeFlags'] ?? LOCK_EX;
-        $storage = new Storage($dto);
-        $storage->setAlias("local");
-        if ($file !== null) {
-            $storage->setFile($file);
-        }
-        return $storage;
-    }
-
-    /**
      * @param $value
      * @return mixed
      */
@@ -166,11 +146,10 @@ class Storage
         return $this->alias = $value;
     }
 
-
     /**
      * @throws FileException
      */
-    public function isFile()
+    public function hasFile()
     {
         if (!is_a($this->getFile(), File::class)) {
             throw new FileException("File is not exists");
@@ -195,6 +174,19 @@ class Storage
         return $this->getFile();
     }
 
+    /**
+     * @param $source
+     * @return bool
+     * @throws Exception\AdapterException
+     */
+    public function has($source = null)
+    {
+        if ($source == null) {
+            $source = $this->getFile()->getPath();
+        }
+
+        return $this->getFilesystem()->has($source);
+    }
 
     /**
      * @return Filesystem
@@ -208,17 +200,6 @@ class Storage
 
         return $this->_filesystem;
     }
-
-    /**
-     * @param $source
-     * @return bool
-     * @throws Exception\AdapterException
-     */
-    public function has($source = null)
-    {
-        return $this->getFilesystem()->has($source);
-    }
-
 
     /**
      * @return mixed
@@ -244,6 +225,14 @@ class Storage
     }
 
     /**
+     * @return bool
+     */
+    public function hasTemplate()
+    {
+        return strlen($this->getTemplate()) > 0;
+    }
+
+    /**
      * @return mixed
      */
     public function getTemplate()
@@ -257,7 +246,7 @@ class Storage
     public function setTemplate($template)
     {
         $this->template = $template;
-        return $this->getTemplate();
+        return $this;
     }
 
 }

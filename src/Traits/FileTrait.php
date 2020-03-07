@@ -1,4 +1,10 @@
 <?php
+/**
+ * @link http://www.yiiframework.com/
+ * @copyright Copyright (c) 2020 Yii Software LLC
+ * @license http://www.yiiframework.com/license/
+ * @author Jakharbek <jakharbek@gmail.com>
+ */
 
 namespace Yiisoft\Files\Traits;
 
@@ -18,85 +24,104 @@ use Yiisoft\Files\Storage;
  */
 trait FileTrait
 {
-
     /**
-     * @param $file resource|string|File
-     * @return mixed
+     * @param $to
+     * @return File|null
+     * @throws FileException
+     * @throws \League\Flysystem\FileExistsException
+     * @throws \League\Flysystem\FileNotFoundException
+     * @throws \Yiisoft\Files\Exception\AdapterException
      */
-    public function update($file)
+    public function rename($to): ?File
     {
-        return $this->getStorage()->update($file);
-    }
-
-
-    /**
-     * @param $dist
-     * @param Storage|null $storage
-     * @param array $config
-     * @return bool
-     */
-    public function write($dist, Storage $storage = null, $config = [])
-    {
-        if ($storage == null) {
-            $storage = $this->getStorage();
+        if (!preg_match('/[\/\\\\]/', $to)) {
+            $to = $this->getDirname() . "/" . $to;
         }
 
-        return $storage->write($dist, $this->getStream(), $config);
+        if ($this->hasLocal()) {
+            $from = $this->getLocal();
+            if (!rename($from, $to)) {
+                throw new FileException("File is not renamed");
+            }
+            return File::local($to);
+        }
+
+        if ($this->hasStorage()) {
+            return $this->getStorage()->rename($to)->getFile();
+        }
+
+        if ($this->hasStream()) {
+            throw new FileException("Its is not file, it is stream");
+        }
+
+        throw new FileException("It is not possible to rename");
     }
 
-
     /**
-     * @return bool
      * @throws FileException
+     * @throws \League\Flysystem\FileNotFoundException
      */
     public function delete()
     {
-        $storage = $this->getStorage();
-        return $storage->delete();
+        if ($this->hasLocal()) {
+            $from = $this->getLocal();
+            if (!unlink($from)) {
+                throw new FileException("File is not deleted");
+            }
+            return;
+        }
+
+        if ($this->hasStorage()) {
+            return $this->getStorage()->delete();
+        }
+
+        if ($this->hasStream()) {
+            throw new FileException("Its is not file, it is stream");
+        }
+
+        throw new FileException("It is not possible to delete");
     }
-
-
-    /**
-     * @return bool|false|mixed|string
-     */
-    public function readAndDelete()
-    {
-        return $this->getStorage()->readAndDelete();
-    }
-
-
-    /**
-     * @param $to
-     * @return bool
-     */
-    public function rename($to)
-    {
-        return $this->getStorage()->rename($to);
-    }
-
 
     /**
      * @param $to
-     * @return bool
+     * @return File|null
+     * @throws FileException
+     * @throws \League\Flysystem\FileExistsException
+     * @throws \League\Flysystem\FileNotFoundException
+     * @throws \Yiisoft\Files\Exception\AdapterException
      */
     public function copy($to)
     {
-        return $this->getStorage()->copy($to);
-    }
-
-    /**
-     * @param null $dist
-     * @param Storage|null $storage
-     * @param array $config
-     * @return mixed
-     */
-    public function put($dist = null, Storage $storage = null, $config = [])
-    {
-        if ($storage == null) {
-            $storage = $this->getStorage();
+        if (!preg_match('/[\/\\\\]/', $to)) {
+            $to = $this->getDirname() . "/" . $to;
         }
 
-        return $storage->put($dist, $this, $config);
+        if ($this->hasLocal()) {
+            $from = $this->getLocal();
+            if (!copy($from, $to)) {
+                throw new FileException("File is not copied");
+            }
+            return File::local($to);
+        }
+
+        if ($this->hasStorage()) {
+            return $this->getStorage()->copy($to)->getFile();
+        }
+
+        if ($this->hasStream()) {
+            throw new FileException("Its is not file, it is stream");
+        }
+
+        throw new FileException("It is not possible to copy");
     }
 
+
+    /**
+     * @param Storage|null $storage
+     * @return mixed
+     */
+    public function to(Storage $storage = null)
+    {
+        return $this->getFile()->to($storage);
+    }
 }

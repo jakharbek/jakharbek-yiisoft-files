@@ -8,10 +8,20 @@
 
 namespace Yiisoft\Files;
 
+use League\Flysystem\FileNotFoundException;
+use Yiisoft\Files\Exception\FileException;
 use Yiisoft\Files\Helper\FileHelper;
+use Yiisoft\Files\Helper\MimeTypeHelper;
 use Yiisoft\Files\Traits\FileTrait;
 
 /**
+ * This class implements file abstraction in the file system.
+ * There are three ways to access these files any of these ways will help you access any or most file system:
+ * Local - If your file is located locally or outside the local storage that you defined                    -   @see File::local()
+ * From - If your file is located in the storage, then you can use this method to access the file           -   @see File::from()
+ * Stream - For streaming files, you can use this method                                                    -   @see File::stream()
+ * Form - For convenience, you can use this method if you submit a file through the form                    -   @see File::from()
+ *
  * Class File
  * @package Yiisoft\Filess
  */
@@ -19,178 +29,452 @@ class File
 {
     use FileTrait;
 
-    private $storage;
-    private $source;
+    private $storage = null;
+    private $_path = null;
+    private $_stream = null;
+    private $_info = null;
+    private $_local = null;
+
 
     /**
-     * File constructor.
-     * @param $name
-     * @throws FileException
+     * @param $path
+     * @param Storage|null $storage
+     * @return File
+     * @throws Exception\AdapterException
      */
-    public function __construct($name)
+    public static function from($path, Storage $storage = null)
     {
-        $this->initSource($name);
-        $this->setStorage(Storage::getLocalStorage($this));
+        $file = new File();
+        $file->setPath($path);
+        $file->initStorage($storage);
+        return $file;
     }
 
-    /**
-     * @param $name
-     * @throws FileException
-     */
-    private function initSource($name)
-    {
-        if (preg_match("/[$]/m", $name)) {
-            $name = str_replace("$", null, $name);
-            $name = FileHelper::getPathFromFiles($name);
-        }
-
-        $this->setPath($name);
-    }
 
     /**
      * @param null $path
      * @return string|null
-     * @throws \Exception
      */
     private function setPath($path = null): ?string
     {
-        $this->source = $path;
-        return $this->getSource();
+        $this->_path = $path;
+        return $this->getPath();
     }
 
     /**
-     * @return mixed
+     * @return null
      */
-    public function getSource()
+    public function getPath()
     {
-        return $this->source;
+        return $this->_path;
     }
 
     /**
-     * @return string
+     * @param Storage|null $storage
+     * @return Storage
+     * @throws Exception\AdapterException
      */
-    public function getFilename()
+    public function initStorage(Storage $storage = null): ?Storage
     {
-        return basename($this->getSource());
-    }
+        if (!($storage instanceof Storage)) {
+            $storage = Storage::getLocalStorage($this);
+        }
 
-    /**
-     * @return bool
-     */
-    public function exists()
-    {
-        return file_exists($this->getSource());
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasename()
-    {
-        return $this->getInfo()['basename'];
-    }
-
-    /**
-     * @return string|string[]
-     */
-    public function getInfo()
-    {
-        return pathinfo($this->getSource());
-    }
-
-    /**
-     * @return string
-     */
-    public function getExtension()
-    {
-        return $this->getInfo()['extension'];
-    }
-
-    /**
-     * @return string|string[]
-     * @throws \Exception
-     */
-    public function relativePath()
-    {
-        return str_replace($this->getStorage()->getRoot(), null, $this->getSource());
+        $storage->setFile($this);
+        $this->setStorage($storage);
+        return $this->getStorage();
     }
 
     /**
      * @return Storage
      * @throws \Exception
      */
-    public function getStorage(): Storage
+    public function getStorage(): ?Storage
     {
         return $this->storage;
     }
 
     /**
      * @param $value
-     * @return Storage
+     * @return Storage|null
      * @throws \Exception
      */
-    public function setStorage($value): Storage
+    public function setStorage($value): ?Storage
     {
         $this->storage = $value;
         return $this->getStorage();
     }
 
     /**
+     * @param $name
+     * @return File
+     * @throws FileException
+     */
+    public static function form($name)
+    {
+        return self::local(FileHelper::getPathFromFiles($name));
+    }
+
+    /**
+     * @param $dist
+     * @return File|null
+     * @throws FileException
+     */
+    public static function local($dist): ?File
+    {
+        if (!file_exists($dist)) {
+            throw new FileException("File is not founded");
+        }
+
+        $file = new File();
+        $file->setLocal($dist);
+        $file->initStream(fopen($file->getLocal(), "r+"));
+        return $file;
+    }
+
+    /**
+     * @param $stream
      * @return false|resource
+     */
+    public function initStream($stream)
+    {
+        return $this->setStream($stream);
+    }
+
+    /**
+     * @return null
+     */
+    public function getLocal()
+    {
+        return $this->_local;
+    }
+
+
+    /**
+     * @param $local
+     * @return string|null
+     */
+    public function setLocal($local): ?string
+    {
+        $this->_local = $local;
+        return $this->getLocal();
+    }
+
+    /**
+     * @param $stream
+     * @return File
+     * @throws FileException
+     */
+    public static function stream($stream): ?File
+    {
+        if (!is_resource($stream)) {
+            throw new FileException("Stream is not founded");
+        }
+
+        $file = new File();
+        $file->initStream($stream);
+        return $file;
+    }
+
+
+    /**
+     * @return bool
+     * @throws Exception\AdapterException
+     * @throws FileException
+     */
+    public function exists()
+    {
+        if ($this->hasLocal()) {
+            return file_exists($this->getLocal());
+        }
+
+        if ($this->hasPath()) {
+            return $this->getStorage()->has();
+        }
+
+        if ($this->hasStream()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasLocal()
+    {
+        return strlen($this->getLocal()) > 0;
+    }
+
+
+    /**
+     * @return bool
+     */
+    public function hasPath()
+    {
+        return strlen($this->getPath()) > 0;
+    }
+
+    /**
+     * @return bool
+     * @throws FileException
+     */
+    public function hasStream()
+    {
+        return is_resource($this->getStream());
+    }
+
+
+    /**
+     * @return bool|false|mixed|resource|null
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
      */
     public function getStream()
     {
-        return fopen($this->getSource(), 'r+');
+        if (is_resource($this->_stream)) {
+            return $this->_stream;
+        }
+
+        if ($this->getStorage() instanceof Storage && $this->getStorage()->has()) {
+            return $this->getStorage()->readStream();
+        }
+
+        if (file_exists($this->getPath())) {
+            return fopen($this->getPath(), 'r+');
+        }
+
+        throw new FileException("Stream is not founded");
     }
 
+
     /**
-     * @return string
+     * @param $stream
+     * @return bool|false|mixed|resource|null
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
+     */
+    function setStream($stream)
+    {
+        $this->_stream = $stream;
+        return $this->getStream();
+    }
+
+
+    /**
+     * @param Storage|null $storage
+     * @return Storage|null
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
+     */
+    public function stored(Storage $storage = null): ?Storage
+    {
+
+        if (strlen($this->getPath()) == 0 && is_resource($this->getStream())) {
+            throw new FileException("File is a stream");
+        }
+
+        if (strlen($this->getPath()) == 0) {
+            throw new FileException("The path to the file required for stored file");
+        }
+
+        if ($storage == null) {
+            $storage = $this->getStorage();
+        }
+
+        $storage = $this->initStorage($storage);
+
+        if (!$storage->exists($this->getPath())) {
+            throw new FileException("File is not founded");
+        }
+
+        return $this->getStorage();
+    }
+
+
+    /**
+     * @param Storage|null $storage
+     * @return Storage|null
+     * @throws Exception\AdapterException
+     */
+    public function to(Storage $storage = null): ?Storage
+    {
+        if ($storage === null) {
+            $storage = Storage::getLocalStorage();
+        }
+
+        $storage->setFile($this);
+
+        return $storage;
+    }
+
+
+    /**
+     * @return bool|false|mixed|string
+     * @throws FileException
+     * @throws FileNotFoundException
      */
     public function getMimetype()
     {
-        return mime_content_type($this->getSource());
+        if ($this->hasLocal()) {
+            return mime_content_type($this->getLocal());
+        }
+
+        if ($this->getStorage() instanceof Storage) {
+            return $this->getStorage()->getMimetype();
+        }
+
+        if (strlen($this->getExtension()) > 0) {
+            return MimeTypeHelper::getMimeTypeByExt("." . $this->getExtension());
+        }
+
+        throw new FileException("No data");
     }
 
-    /**
-     * @return false|int
-     */
-    public function getTimestamp()
-    {
-        return filemtime($this->getSource());
-    }
 
     /**
-     * @return false|int
+     * @return mixed|string
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
      */
-    public function getSize()
+    public function getExtension()
     {
-        return filesize($this->getSource());
+        if ($this->hasLocal()) {
+            return pathinfo($this->getLocal())['extension'];
+        }
+        if ($this->hasPath()) {
+            return pathinfo($this->getPath())['extension'];
+        }
+
+        if ($this->hasStream()) {
+            return @pathinfo(stream_get_meta_data($this->getStream())['uri'])['extension'];
+        }
+
+        throw new FileException("No data");
     }
 
+
     /**
-     * @return string|string[]
-     * @throws \Exception
+     * @param null $source
+     * @return bool|false|int|mixed|string
+     * @throws FileNotFoundException
      */
-    public function relativeDir()
+    public function getTimestamp($source = null)
     {
-        return str_replace($this->getStorage()->getRoot(), $this->getDir());
+        if ($this->hasLocal()) {
+            return filemtime($this->getLocal());
+        }
+
+        if ($this->getStorage() instanceof Storage) {
+            return $this->getStorage()->getTimestamp();
+        }
+
+        return time();
     }
+
+
+    /**
+     * @param null $source
+     * @return bool|false|int|mixed
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
+     */
+    public function getSize($source = null)
+    {
+        if ($this->hasLocal()) {
+            return filesize($this->getLocal());
+        }
+        if ($this->getStorage() instanceof Storage) {
+            return $this->getStorage()->getSize();
+        }
+        if ($this->hasStream()) {
+            return fstat($this->getStream())['size'];
+        }
+        throw new FileException("No data");
+    }
+
 
     /**
      * @return string
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
      */
-    public function getDir()
+    public function getBasename()
     {
-        return $this->getInfo()['dirname'];
+        if ($this->hasLocal()) {
+            return basename($this->getLocal());
+        }
+        if ($this->hasPath()) {
+            return basename($this->getPath());
+        }
+
+        if ($this->hasStream()) {
+            return @basename(stream_get_meta_data($this->getStream())['uri']);
+        }
+
+        throw new FileException("No data");
     }
+
 
     /**
-     * @return false|string
+     * @return string
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
      */
-    public function getContents()
+    public function getDirname()
     {
-        return file_get_contents($this->getSource());
+        if ($this->hasLocal()) {
+            return dirname($this->getLocal());
+        }
+        if ($this->hasPath()) {
+            return dirname($this->getPath());
+        }
+
+        if ($this->hasStream()) {
+            return @dirname(stream_get_meta_data($this->getStream())['uri']);
+        }
+
+        throw new FileException("No data");
     }
 
 
+    /**
+     * @return mixed|string
+     * @throws Exception\AdapterException
+     * @throws FileException
+     * @throws FileNotFoundException
+     */
+    public function getFilename()
+    {
+        if ($this->hasLocal()) {
+            return pathinfo($this->getLocal())['filename'];
+        }
+        if ($this->hasPath()) {
+            return pathinfo($this->getPath())['filename'];
+        }
+
+        if ($this->hasStream()) {
+            return @pathinfo(stream_get_meta_data($this->getStream())['uri'])['filename'];
+        }
+
+        throw new FileException("No data");
+    }
+
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function hasStorage()
+    {
+        return $this->getStorage() instanceof Storage;
+    }
 }

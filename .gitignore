@@ -38,3 +38,4 @@ analysis.txt
 /docker-compose.yml
 /php/
 /.env
+/tests/static/
